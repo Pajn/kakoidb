@@ -23,15 +23,15 @@ impl MemoryDataStore {
 }
 
 impl DataStore for MemoryDataStore {
-    fn get(&self, key: &String) -> Result<Option<&String>> {
+    fn get(&self, key: &str) -> Result<Option<&String>> {
         Ok(self.strings.get(key))
     }
 
-    fn set(&mut self, key: &String, value: String) -> Result<()> {
-        self.strings.insert(key.clone(), value);
+    fn set(&mut self, key: &str, value: String) -> Result<()> {
+        self.strings.insert(key.to_string(), value);
         Ok(())
     }
-    fn hget(&self, key: &String, properties: Vec<&String>) -> Result<Option<HashMap<String, Option<String>>>> {
+    fn hget(&self, key: &str, properties: Vec<&str>) -> Result<Option<HashMap<String, Option<String>>>> {
         debug!("hget {}, {:?}", key, properties);
 
         Ok(match self.hashes.get(key) {
@@ -45,7 +45,7 @@ impl DataStore for MemoryDataStore {
         })
     }
 
-    fn hget_all(&self, key: &String) -> Result<Option<HashMap<String, String>>> {
+    fn hget_all(&self, key: &str) -> Result<Option<HashMap<String, String>>> {
         debug!("hget_all {}", key);
 
         Ok(match self.hashes.get(key) {
@@ -60,32 +60,32 @@ impl DataStore for MemoryDataStore {
         })
     }
 
-    fn hset(&mut self, key: &String, property: &String, value: String) -> Result<()> {
+    fn hset(&mut self, key: &str, property: &str, value: String) -> Result<()> {
         debug!("hset {}, {}, {}", key, property, value);
 
-        let hash = self.hashes.entry(key.clone()).or_insert_with(new_hash);
-        hash.insert(property.clone(), value);
+        let hash = self.hashes.entry(key.to_string()).or_insert_with(new_hash);
+        hash.insert(property.to_string(), value);
         Ok(())
     }
 
-    fn hset_all(&mut self, key: &String, values: HashMap<String, String>) -> Result<()> {
+    fn hset_all(&mut self, key: &str, values: HashMap<String, String>) -> Result<()> {
         debug!("hset_all {}, {:?}", key, values);
 
-        let hash = self.hashes.entry(key.clone()).or_insert_with(new_hash);
+        let hash = self.hashes.entry(key.to_string()).or_insert_with(new_hash);
         hash.extend(values);
         Ok(())
     }
 
-    fn lget(&self, key: &String) -> Result<Option<Vec<String>>> {
+    fn lget(&self, key: &str) -> Result<Option<Vec<String>>> {
         debug!("lget {}", key);
 
         Ok(self.lists.get(key).map(Clone::clone))
     }
 
-    fn lpush(&mut self, key: &String, values: Vec<String>) -> Result<()> {
+    fn lpush(&mut self, key: &str, values: Vec<String>) -> Result<()> {
         debug!("lpush {}", key);
 
-        let list = self.lists.entry(key.clone()).or_insert_with(new_list);
+        let list = self.lists.entry(key.to_string()).or_insert_with(new_list);
         list.extend(values);
         Ok(())
     }

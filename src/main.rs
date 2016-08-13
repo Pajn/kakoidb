@@ -55,18 +55,18 @@ fn main() {
     );
 
     db.set(
-        vec![PathPart::Field(&"series".to_string())],
+        vec![PathPart::Field(&"series")],
         Value::List(vec![elementary, sherlock]),
     ).unwrap();
 
     let value = db.select(
         &Selector::Traverse(
-            "series".to_string(),
+            &"series",
             &Selector::Multi(vec![
-                Selector::Field("name".to_string()),
+                Selector::Field("name"),
                 Selector::Traverse(
-                    "episodes".to_string(),
-                    &Selector::Field("name".to_string()),
+                    "episodes",
+                    &Selector::Field("name"),
                 ),
             ]),
         )
@@ -76,7 +76,7 @@ fn main() {
 
     let value = db.select(
         &Selector::Traverse(
-            "series".to_string(),
+            "series",
             &Selector::AllFields,
         )
     ).unwrap();
@@ -85,12 +85,12 @@ fn main() {
 
     let value = db.select(
         &Selector::Traverse(
-            "series".to_string(),
+            "series",
             &Selector::Multi(vec![
                 Selector::AllFields,
                 Selector::Traverse(
-                    "episodes".to_string(),
-                    &Selector::Field("name".to_string()),
+                    "episodes",
+                    &Selector::Field("name"),
                 ),
             ]),
         )

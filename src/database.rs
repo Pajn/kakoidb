@@ -13,11 +13,11 @@ fn root_key() -> String {
     "root".to_string()
 }
 
-fn list_key(id: &String) -> String {
+fn list_key(id: &str) -> String {
     format!("list_{}", id)
 }
 
-fn node_key(id: &String) -> String {
+fn node_key(id: &str) -> String {
     format!("node_{}", id)
 }
 
@@ -30,11 +30,11 @@ fn node_value(result: KakoiResult<Option<Node>>) -> KakoiResult<Value> {
 }
 
 trait HashNode {
-    fn into_node(self, id: Option<&String>) -> KakoiResult<Option<Node>>;
+    fn into_node(self, id: Option<&str>) -> KakoiResult<Option<Node>>;
 }
 
 impl HashNode for io::Result<Option<HashMap<String, Option<String>>>> {
-    fn into_node(self, id: Option<&String>) -> KakoiResult<Option<Node>> {
+    fn into_node(self, id: Option<&str>) -> KakoiResult<Option<Node>> {
         self
             .map_err(io_err)
             .and_then(|hash| {
@@ -50,7 +50,7 @@ impl HashNode for io::Result<Option<HashMap<String, Option<String>>>> {
 }
 
 impl HashNode for io::Result<Option<HashMap<String, String>>> {
-    fn into_node(self, id: Option<&String>) -> KakoiResult<Option<Node>> {
+    fn into_node(self, id: Option<&str>) -> KakoiResult<Option<Node>> {
         self
             .map_err(io_err)
             .and_then(|hash| {
@@ -76,8 +76,8 @@ impl<'a> Database<'a> {
 
     pub fn set(&mut self, mut path: Path, value: Value) -> KakoiResult {
         let mut resolver = ValueResolver::new();
-        let resolved_value = resolver.resolve(value, &path);
-        let enocded_value = encode_value(&resolved_value);
+        let value = resolver.resolve(value, &path);
+        let value = encode_value(&value);
 
         for list in resolver.lists {
             let values = list.values.iter().map(encode_value).collect();
@@ -93,7 +93,7 @@ impl<'a> Database<'a> {
         }
 
         match path.pop() {
-            Some(part) => self.set_value(&root_key(), part, enocded_value),
+            Some(part) => self.set_value(&root_key(), part, value),
             None => Err(Error::EmptyPath)
         }
     }
@@ -102,7 +102,7 @@ impl<'a> Database<'a> {
         self.run_query(None, selector)
     }
 
-    fn run_query(&self, node_id: Option<&String>, selector: &Selector) -> KakoiResult<Value> {
+    fn run_query(&self, node_id: Option<&str>, selector: &Selector) -> KakoiResult<Value> {
         match selector {
             &Selector::AllFields => node_value(self.get_full_node(node_id)),
             &Selector::Field(ref field) => node_value(self.get_node(node_id, vec![field])),
@@ -125,8 +125,8 @@ impl<'a> Database<'a> {
                 for selector in selectors {
                     match selector {
                         &Selector::AllFields => all_fields = true,
-                        &Selector::Field(ref field) => fields.push(field),
-                        &Selector::Traverse(ref field, selector) => {
+                        &Selector::Field(field) => fields.push(field),
+                        &Selector::Traverse(field, selector) => {
                             fields.push(field);
                             traverse.insert(field, selector);
                         }
@@ -152,7 +152,7 @@ impl<'a> Database<'a> {
         }
     }
 
-    fn traverse_field(&self, mut node: Node, field: &String, selector: &Selector) -> KakoiResult<Node> {
+    fn traverse_field(&self, mut node: Node, field: &str, selector: &Selector) -> KakoiResult<Node> {
         let value = node.properties[field].clone();
         let sub_query = try!(self.traverse_value(&value, selector));
         node.properties.insert(field.to_owned(), sub_query);
@@ -182,7 +182,7 @@ impl<'a> Database<'a> {
         }
     }
 
-    fn get_list(&self, id: &String) -> KakoiResult<Vec<Value>> {
+    fn get_list(&self, id: &str) -> KakoiResult<Vec<Value>> {
         let list = self.store.lget(&list_key(id));
 
         list
@@ -191,7 +191,7 @@ impl<'a> Database<'a> {
 
     }
 
-    fn get_node(&self, id: Option<&String>, fields: Vec<&String>) -> KakoiResult<Option<Node>> {
+    fn get_node(&self, id: Option<&str>, fields: Vec<&str>) -> KakoiResult<Option<Node>> {
         let key = match id {
             Some(ref id) => node_key(id),
             None => root_key()
@@ -200,7 +200,7 @@ impl<'a> Database<'a> {
         self.store.hget(&key, fields).into_node(id)
     }
 
-    fn get_full_node(&self, id: Option<&String>) -> KakoiResult<Option<Node>> {
+    fn get_full_node(&self, id: Option<&str>) -> KakoiResult<Option<Node>> {
         let key = match id {
             Some(ref id) => node_key(id),
             None => root_key()
@@ -209,7 +209,7 @@ impl<'a> Database<'a> {
         self.store.hget_all(&key).into_node(id)
     }
 
-    fn set_value(&mut self, key: &String, path: PathPart, value: String) -> KakoiResult {
+    fn set_value(&mut self, key: &str, path: PathPart, value: String) -> KakoiResult {
         match path {
             PathPart::Field(ref field) => self.store.hset(key, field, value).map_err(io_err),
         }

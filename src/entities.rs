@@ -2,7 +2,7 @@ use std::io;
 
 #[derive(Clone)]
 pub enum PathPart<'a> {
-    Field(&'a String),
+    Field(&'a str),
 }
 
 pub type Path<'a> = Vec<PathPart<'a>>;
@@ -22,7 +22,7 @@ pub type KakoiResult<T = ()> = Result<T, Error>;
 #[derive(Debug)]
 pub enum Selector<'a> {
     AllFields,
-    Field(String),
+    Field(&'a str),
     Multi(Vec<Selector<'a>>),
-    Traverse(String, &'a Selector<'a>),
+    Traverse(&'a str, &'a Selector<'a>),
 }

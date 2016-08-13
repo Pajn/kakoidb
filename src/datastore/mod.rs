@@ -4,16 +4,16 @@ use std::io::Result;
 pub mod memory;
 
 pub trait DataStore {
-    fn get(&self, key: &String) -> Result<Option<&String>>;
-    fn set(&mut self, key: &String, value: String) -> Result<()>;
+    fn get(&self, key: &str) -> Result<Option<&String>>;
+    fn set(&mut self, key: &str, value: String) -> Result<()>;
 
-    fn hget(&self, key: &String, properties: Vec<&String>) -> Result<Option<HashMap<String, Option<String>>>>;
-    fn hget_all(&self, key: &String) -> Result<Option<HashMap<String, String>>>;
-    fn hset(&mut self, key: &String, property: &String, value: String) -> Result<()>;
-    fn hset_all(&mut self, key: &String, values: HashMap<String, String>) -> Result<()>;
+    fn hget(&self, key: &str, properties: Vec<&str>) -> Result<Option<HashMap<String, Option<String>>>>;
+    fn hget_all(&self, key: &str) -> Result<Option<HashMap<String, String>>>;
+    fn hset(&mut self, key: &str, property: &str, value: String) -> Result<()>;
+    fn hset_all(&mut self, key: &str, values: HashMap<String, String>) -> Result<()>;
 
-    fn lget(&self, key: &String) -> Result<Option<Vec<String>>>;
-    fn lpush(&mut self, key: &String, values: Vec<String>) -> Result<()>;
+    fn lget(&self, key: &str) -> Result<Option<Vec<String>>>;
+    fn lpush(&mut self, key: &str, values: Vec<String>) -> Result<()>;
 }
 
 //abstract class DataStore {
