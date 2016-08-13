@@ -43,8 +43,13 @@ impl<'a> Database<'a> {
         }
     }
 
-    pub fn select(&self, selector: &Selector) -> KakoiResult<Value> {
-        self.run_query(None, selector)
+    pub fn select(&self, selector: &Selector) -> KakoiResult<HashMap<String, Value>> {
+        let root_node = try!(self.run_query(None, selector));
+
+        match root_node {
+            Value::Node(node) => Ok(node.properties),
+            _ => panic!("No root node returned"),
+        }
     }
 
     fn run_query(&self, node_id: Option<&str>, selector: &Selector) -> KakoiResult<Value> {

@@ -3,6 +3,10 @@ use std::io;
 use entities::{Error, KakoiResult};
 use node::Node;
 
+fn unwrap_id(id: Option<&str>) -> String {
+    id.map(|id| id.to_owned()).unwrap_or("".to_string())
+}
+
 pub fn io_err(error: io::Error) -> Error {
     Error::Io(error)
 }
@@ -18,8 +22,7 @@ impl HashNode for io::Result<Option<HashMap<String, Option<String>>>> {
             .and_then(|hash| {
                 match hash {
                     Some(props) => {
-                        let id = id.map(|id| id.to_owned()).unwrap_or("root".to_string());
-                        Node::new(id, props).map(Some)
+                        Node::new(unwrap_id(id), props).map(Some)
                     },
                     None => Ok(None),
                 }
@@ -34,12 +37,11 @@ impl HashNode for io::Result<Option<HashMap<String, String>>> {
             .and_then(|hash| {
                 match hash {
                     Some(props) => {
-                        let id = id.map(|id| id.to_owned()).unwrap_or("root".to_string());
-                        let option_props = props
+                        let props = props
                             .into_iter()
                             .map(|(key, value)| (key, Some(value)))
                             .collect();
-                        Node::new(id, option_props).map(Some)
+                        Node::new(unwrap_id(id), props).map(Some)
                     },
                     None => Ok(None),
                 }
