@@ -32,7 +32,7 @@ impl DataStore for MemoryDataStore {
         Ok(())
     }
     fn hget(&self, key: &String, properties: Vec<&String>) -> Result<Option<HashMap<String, Option<String>>>> {
-        println!("hget {}, {:?}", key, properties);
+        debug!("hget {}, {:?}", key, properties);
 
         Ok(match self.hashes.get(key) {
             Some(h) => Some(
@@ -46,7 +46,7 @@ impl DataStore for MemoryDataStore {
     }
 
     fn hget_all(&self, key: &String) -> Result<Option<HashMap<String, String>>> {
-        println!("hget_all {}", key);
+        debug!("hget_all {}", key);
 
         Ok(match self.hashes.get(key) {
             Some(h) => {
@@ -61,7 +61,7 @@ impl DataStore for MemoryDataStore {
     }
 
     fn hset(&mut self, key: &String, property: &String, value: String) -> Result<()> {
-        println!("hset {}, {}, {}", key, property, value);
+        debug!("hset {}, {}, {}", key, property, value);
 
         let hash = self.hashes.entry(key.clone()).or_insert_with(new_hash);
         hash.insert(property.clone(), value);
@@ -69,7 +69,7 @@ impl DataStore for MemoryDataStore {
     }
 
     fn hset_all(&mut self, key: &String, values: HashMap<String, String>) -> Result<()> {
-        println!("hset_all {}, {:?}", key, values);
+        debug!("hset_all {}, {:?}", key, values);
 
         let hash = self.hashes.entry(key.clone()).or_insert_with(new_hash);
         hash.extend(values);
@@ -77,13 +77,13 @@ impl DataStore for MemoryDataStore {
     }
 
     fn lget(&self, key: &String) -> Result<Option<Vec<String>>> {
-        println!("lget {}", key);
+        debug!("lget {}", key);
 
         Ok(self.lists.get(key).map(Clone::clone))
     }
 
     fn lpush(&mut self, key: &String, values: Vec<String>) -> Result<()> {
-        println!("lpush {}", key);
+        debug!("lpush {}", key);
 
         let list = self.lists.entry(key.clone()).or_insert_with(new_list);
         list.extend(values);

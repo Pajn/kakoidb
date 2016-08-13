@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate log;
+extern crate env_logger;
 extern crate uuid;
 
 mod datastore;
@@ -15,6 +18,7 @@ use entities::Selector;
 use node::Node;
 use value::Value;
 
+
 fn serie(name: &str, episodes: Vec<Node>) -> Node {
     let mut node = Node {id: name.to_string(), properties: HashMap::new()};
     node.properties.insert("name".to_string(), Value::String(name.to_string()));
@@ -29,6 +33,8 @@ fn episode(name: &str) -> Node {
 }
 
 fn main() {
+    env_logger::init().unwrap();
+
     let mut store = MemoryDataStore::new();
     let mut db = Database::new(&mut store);
 
