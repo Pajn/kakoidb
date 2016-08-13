@@ -1,72 +1,17 @@
 use std::collections::HashMap;
-use std::io;
 use datastore::DataStore;
 use entities::*;
+use keys::*;
 use node::Node;
+use node::hashnode::{HashNode, io_err};
 use value::{Value, ValueResolver, decode_value, encode_properties, encode_value};
 
 pub struct Database<'a> {
     store: &'a mut DataStore,
 }
 
-fn root_key() -> String {
-    "root".to_string()
-}
-
-fn list_key(id: &str) -> String {
-    format!("list_{}", id)
-}
-
-fn node_key(id: &str) -> String {
-    format!("node_{}", id)
-}
-
-fn io_err(error: io::Error) -> Error {
-    Error::Io(error)
-}
-
 fn node_value(result: KakoiResult<Option<Node>>) -> KakoiResult<Value> {
     result.map(|n| n.map_or(Value::Null, Value::Node))
-}
-
-trait HashNode {
-    fn into_node(self, id: Option<&str>) -> KakoiResult<Option<Node>>;
-}
-
-impl HashNode for io::Result<Option<HashMap<String, Option<String>>>> {
-    fn into_node(self, id: Option<&str>) -> KakoiResult<Option<Node>> {
-        self
-            .map_err(io_err)
-            .and_then(|hash| {
-                match hash {
-                    Some(props) => {
-                        let id = id.map(|id| id.to_owned()).unwrap_or("root".to_string());
-                        Node::new(id, props).map(Some)
-                    },
-                    None => Ok(None),
-                }
-            })
-    }
-}
-
-impl HashNode for io::Result<Option<HashMap<String, String>>> {
-    fn into_node(self, id: Option<&str>) -> KakoiResult<Option<Node>> {
-        self
-            .map_err(io_err)
-            .and_then(|hash| {
-                match hash {
-                    Some(props) => {
-                        let id = id.map(|id| id.to_owned()).unwrap_or("root".to_string());
-                        let option_props = props
-                            .into_iter()
-                            .map(|(key, value)| (key, Some(value)))
-                            .collect();
-                        Node::new(id, option_props).map(Some)
-                    },
-                    None => Ok(None),
-                }
-            })
-    }
 }
 
 impl<'a> Database<'a> {

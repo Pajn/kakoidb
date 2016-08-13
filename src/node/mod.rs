@@ -1,3 +1,5 @@
+pub mod hashnode;
+
 use std::collections::HashMap;
 use entities::KakoiResult;
 use value::{Value, decode_optional_value};

@@ -1,7 +1,7 @@
+pub mod memory;
+
 use std::collections::HashMap;
 use std::io::Result;
-
-pub mod memory;
 
 pub trait DataStore {
     fn get(&self, key: &str) -> Result<Option<&String>>;

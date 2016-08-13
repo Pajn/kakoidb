@@ -6,6 +6,7 @@ extern crate uuid;
 mod datastore;
 mod database;
 mod entities;
+mod keys;
 mod node;
 mod value;
 
