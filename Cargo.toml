@@ -1,0 +1,8 @@
+[package]
+
+name = "kakoi"
+version = "0.0.1"
+authors = [ "Rasmus Eneman <rasmus@eneman.eu>" ]
+
+[dependencies]
+uuid = { version = "0.2", features = ["v4"] }
