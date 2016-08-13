@@ -10,7 +10,6 @@ mod node;
 mod value;
 
 use std::collections::HashMap;
-//use datastore::DataStore;
 use datastore::memory::MemoryDataStore;
 use database::Database;
 use entities::PathPart;
@@ -97,21 +96,4 @@ fn main() {
     ).unwrap();
 
     println!("value => {:#?}", value);
-
-//    store.hset("b".to_string(), "h".to_string(), "1".to_string()).unwrap();
-//
-//    let mut map = HashMap::new();
-//    map.insert("a".to_string(), "1".to_string());
-//    map.insert("b".to_string(), "2".to_string());
-//    map.insert("c".to_string(), "3".to_string());
-//
-//    store.hset_all("b".to_string(), map).unwrap();
-//
-//    let hash = store.hget_all("b".to_string()).unwrap().unwrap();
-////    let hash = store.hget("b".to_string(), vec!["a".to_string(), "b".to_string()]).unwrap().unwrap();
-//
-//    for (key, value) in hash.iter() {
-////        println!("{} => {}", key, value.as_ref().unwrap_or(&"__null__".to_string()));
-//        println!("{} => {}", key, value);
-//    }
 }
