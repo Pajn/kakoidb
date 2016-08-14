@@ -102,16 +102,16 @@ impl<'a> Database<'a> {
         }
     }
 
-    fn traverse_field(&self, mut node: Node, field: &str, selector: &Selector) -> KakoiResult<Node> {
+    fn traverse_field(&self, mut node: Node, field: &str, selector: &FilteredSelector) -> KakoiResult<Node> {
         let value = node.properties[field].clone();
         let sub_query = try!(self.traverse_value(&value, selector));
         node.properties.insert(field.to_owned(), sub_query);
         Ok(node)
     }
 
-    fn traverse_value(&self, value: &Value, selector: &Selector) -> KakoiResult<Value> {
+    fn traverse_value<'b>(&self, value: &Value, selector: &'b FilteredSelector) -> KakoiResult<Value> {
         match value {
-            &Value::Link {ref node_id} => self.run_query(Some(node_id), selector),
+            &Value::Link(ref node_id) => self.run_query(Some(node_id), &selector.selector),
             &Value::ListLink(ref id) => {
                 let list = try!(
                     try!(self.get_list(&id))
@@ -122,6 +122,24 @@ impl<'a> Database<'a> {
                                 Value::Node(node) => Ok(node),
                                 _ => Err(Error::Unknown),
                             }
+                        })
+                        .filter(|result: &KakoiResult<Node>| {
+                            let node = match result {
+                                &Ok(ref node) => node,
+                                &Err(_) => return true,
+                            };
+
+                            fn match_predicate(predicate: &Predicate, node: &Node) -> bool {
+                                match predicate {
+                                    &Predicate::All(predicates) => predicates.iter().all(|p| match_predicate(p, node)),
+                                    &Predicate::Any(predicates) => predicates.iter().any(|p| match_predicate(p, node)),
+                                    &Predicate::Eq(field, ref value) => &node.properties[field] == value,
+                                    &Predicate::Neq(field, ref value) => &node.properties[field] != value,
+                                }
+                            };
+
+                            let filter = &selector.filter.to_owned();
+                            filter.as_ref().map_or(true, |p| match_predicate(p, node))
                         })
                         .collect()
                 );

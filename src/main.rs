@@ -13,8 +13,7 @@ mod value;
 use std::collections::HashMap;
 use datastore::memory::MemoryDataStore;
 use database::Database;
-use entities::PathPart;
-use entities::Selector;
+use entities::{FilteredSelector, PathPart, Predicate, Selector, PrimitiveValue};
 use node::Node;
 use value::Value;
 
@@ -62,13 +61,19 @@ fn main() {
     let value = db.select(
         &Selector::Traverse(
             &"series",
-            &Selector::Multi(vec![
+            &FilteredSelector {selector: Selector::Multi(vec![
                 Selector::Field("name"),
                 Selector::Traverse(
                     "episodes",
-                    &Selector::Field("name"),
+                    &FilteredSelector {
+                        selector: Selector::Field("name"),
+                        filter: Some(Predicate::Any(&[
+                            Predicate::Eq("name", PrimitiveValue::String("A Study in Pink".to_string())),
+                            Predicate::Eq("name", PrimitiveValue::String("Pilot".to_string())),
+                        ])),
+                    },
                 ),
-            ]),
+            ]), filter: None},
         )
     ).unwrap();
 
@@ -77,7 +82,7 @@ fn main() {
     let value = db.select(
         &Selector::Traverse(
             "series",
-            &Selector::AllFields,
+            &FilteredSelector {selector: Selector::AllFields, filter: None},
         )
     ).unwrap();
 
@@ -86,13 +91,13 @@ fn main() {
     let value = db.select(
         &Selector::Traverse(
             "series",
-            &Selector::Multi(vec![
+            &FilteredSelector {selector: Selector::Multi(vec![
                 Selector::AllFields,
                 Selector::Traverse(
                     "episodes",
-                    &Selector::Field("name"),
+                    &FilteredSelector {selector: Selector::Field("name"), filter: None},
                 ),
-            ]),
+            ]), filter: Some(Predicate::Eq("name", PrimitiveValue::String("Sherlock".to_string())))},
         )
     ).unwrap();
 

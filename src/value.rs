@@ -12,7 +12,7 @@ pub enum Value {
     //    Array(Array),
     String(String),
     Node(Node),
-    Link {node_id: String},
+    Link(String),
     List(Vec<Node>),
     ListLink(String),
     Null,
@@ -49,7 +49,7 @@ impl ValueResolver {
 
         self.nodes.push(Node {id: node.id.clone(), properties: properties});
 
-        Value::Link {node_id: node.id.clone()}
+        Value::Link(node.id.clone())
     }
 
     pub fn resolve(&mut self, value: Value, path: &Path) -> Value {
@@ -90,7 +90,7 @@ mod prefixes {
 
 pub fn encode_value(value: &Value) -> String {
     match value {
-        &Value::Link {ref node_id} => format!("{}{}", prefixes::LINK, node_id),
+        &Value::Link(ref node_id) => format!("{}{}", prefixes::LINK, node_id),
         &Value::ListLink(ref id) => format!("{}{}", prefixes::LIST, id),
         &Value::String(ref string) => format!("{}{}", prefixes::STRING, string),
         _ => panic!("Got value: {:?}", value)
@@ -106,7 +106,7 @@ pub fn decode_optional_value(string: &Option<String>) -> KakoiResult<Value> {
 
 pub fn decode_value(string: &String) -> KakoiResult<Value> {
     match string.chars().next() {
-        Some(prefixes::LINK) => Ok(Value::Link {node_id: string[1..].to_string()}),
+        Some(prefixes::LINK) => Ok(Value::Link(string[1..].to_string())),
         Some(prefixes::LIST) => Ok(Value::ListLink(string[1..].to_string())),
         Some(prefixes::STRING) => Ok(Value::String(string[1..].to_string())),
         Some(_) => Err(Error::InvalidValue),
