@@ -1,15 +1,17 @@
 use std::collections::HashMap;
+use std::convert::From;
 use uuid::Uuid;
-use entities::{Error, KakoiResult, Path, PathPart};
+use entities::{Error, Path, PathPart, PrimitiveValue};
 use node::Node;
+
+pub type KakoiResult<T = ()> = Result<T, Error>;
 
 #[derive(Clone, Debug)]
 pub enum Value {
-    //    I64(i64),
-    //    U64(u64),
-    //    F64(f64),
-    //    Boolean(bool),
-    //    Array(Array),
+    I64(i64),
+    U64(u64),
+    F64(f64),
+    Boolean(bool),
     String(String),
     Node(Node),
     Link(String),
@@ -72,14 +74,64 @@ impl ValueResolver {
     }
 }
 
-pub fn encode_properties(node: Node) -> HashMap<String, String> {
-    let mut properties = HashMap::new();
+pub fn encode_properties(node: Node) -> HashMap<String, PrimitiveValue> {
+    node.properties
+        .into_iter()
+        .map(|(field, value)| (field, value.into()))
+        .collect()
+}
 
-    for (field, value) in node.properties {
-        properties.insert(field, encode_value(&value));
+impl From<PrimitiveValue> for KakoiResult<Value> {
+    fn from(value: PrimitiveValue) -> Self {
+        match value {
+            PrimitiveValue::I64(num) => Ok(Value::I64(num)),
+            PrimitiveValue::U64(num) => Ok(Value::U64(num)),
+            PrimitiveValue::F64(num) => Ok(Value::F64(num)),
+            PrimitiveValue::Boolean(boolean) => Ok(Value::Boolean(boolean)),
+            PrimitiveValue::String(string) => decode_value(&string),
+            PrimitiveValue::Null => Ok(Value::Null),
+        }
     }
+}
 
-    properties
+//impl TryFrom<StorageValue> for Value {
+//    type Err = Error;
+//
+//    fn try_from(value: StorageValue) -> KakoiResult<Self> {
+//        match value {
+//            StorageValue::I64(num) => Ok(Value::I64(num)),
+//            StorageValue::U64(num) => Ok(Value::U64(num)),
+//            StorageValue::F64(num) => Ok(Value::F64(num)),
+//            StorageValue::Boolean(boolean) => Ok(Value::Boolean(boolean)),
+//            StorageValue::String(string) => decode_value(&string),
+//        }
+//    }
+//}
+//
+//impl TryFrom<Option<StorageValue>> for Value {
+//    type Err = Error;
+//
+//    fn try_from(value: Option<StorageValue>) -> KakoiResult<Self> {
+//        match value {
+//            Some(value) => TryFrom::try_from(value),
+//            None => Ok(Value::Null),
+//        }
+//    }
+//}
+
+impl From<Value> for PrimitiveValue {
+    fn from(value: Value) -> Self {
+        match value {
+            Value::I64(num) => PrimitiveValue::I64(num),
+            Value::U64(num) => PrimitiveValue::U64(num),
+            Value::F64(num) => PrimitiveValue::F64(num),
+            Value::Boolean(boolean) => PrimitiveValue::Boolean(boolean),
+            Value::Null => PrimitiveValue::Null,
+            Value::Link(_) | Value::ListLink(_) | Value::String(_) =>
+                PrimitiveValue::String(encode_value(&value)),
+            _ => panic!("Value {:?} can't be transformed to a storage value", value),
+        }
+    }
 }
 
 mod prefixes {
@@ -88,7 +140,7 @@ mod prefixes {
     pub const LIST: char = 'l';
 }
 
-pub fn encode_value(value: &Value) -> String {
+fn encode_value(value: &Value) -> String {
     match value {
         &Value::Link(ref node_id) => format!("{}{}", prefixes::LINK, node_id),
         &Value::ListLink(ref id) => format!("{}{}", prefixes::LIST, id),
@@ -97,14 +149,7 @@ pub fn encode_value(value: &Value) -> String {
     }
 }
 
-pub fn decode_optional_value(string: &Option<String>) -> KakoiResult<Value> {
-    match string {
-        &Some(ref s) => decode_value(s),
-        &None => Ok(Value::Null),
-    }
-}
-
-pub fn decode_value(string: &String) -> KakoiResult<Value> {
+fn decode_value(string: &String) -> KakoiResult<Value> {
     match string.chars().next() {
         Some(prefixes::LINK) => Ok(Value::Link(string[1..].to_string())),
         Some(prefixes::LIST) => Ok(Value::ListLink(string[1..].to_string())),

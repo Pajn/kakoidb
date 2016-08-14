@@ -2,18 +2,19 @@ pub mod memory;
 
 use std::collections::HashMap;
 use std::io::Result;
+use entities::PrimitiveValue;
 
 pub trait DataStore {
-    fn get(&self, key: &str) -> Result<Option<&String>>;
-    fn set(&mut self, key: &str, value: String) -> Result<()>;
+    fn get(&self, key: &str) -> Result<&PrimitiveValue>;
+    fn set(&mut self, key: &str, value: PrimitiveValue) -> Result<()>;
 
-    fn hget(&self, key: &str, properties: Vec<&str>) -> Result<Option<HashMap<String, Option<String>>>>;
-    fn hget_all(&self, key: &str) -> Result<Option<HashMap<String, String>>>;
-    fn hset(&mut self, key: &str, property: &str, value: String) -> Result<()>;
-    fn hset_all(&mut self, key: &str, values: HashMap<String, String>) -> Result<()>;
+    fn hget(&self, key: &str, properties: Vec<&str>) -> Result<Option<HashMap<String, PrimitiveValue>>>;
+    fn hget_all(&self, key: &str) -> Result<Option<HashMap<String, PrimitiveValue>>>;
+    fn hset(&mut self, key: &str, property: &str, value: PrimitiveValue) -> Result<()>;
+    fn hset_all(&mut self, key: &str, values: HashMap<String, PrimitiveValue>) -> Result<()>;
 
-    fn lget(&self, key: &str) -> Result<Option<Vec<String>>>;
-    fn lpush(&mut self, key: &str, values: Vec<String>) -> Result<()>;
+    fn lget(&self, key: &str) -> Result<Option<Vec<PrimitiveValue>>>;
+    fn lpush(&mut self, key: &str, values: Vec<PrimitiveValue>) -> Result<()>;
 }
 
 //abstract class DataStore {

@@ -1,4 +1,4 @@
-use std::cmp::PartialEq;
+use std::cmp::{Ordering, PartialEq, PartialOrd};
 use std::io;
 use value::Value;
 
@@ -37,8 +37,11 @@ pub struct FilteredSelector<'a> {
 
 #[derive(Clone, Debug)]
 pub enum PrimitiveValue {
+    I64(i64),
+    U64(u64),
+    F64(f64),
+    Boolean(bool),
     String(String),
-    Link(String),
     Null,
 }
 
@@ -46,6 +49,10 @@ pub enum PrimitiveValue {
 pub enum Predicate<'a> {
     Eq(&'a str, PrimitiveValue),
     Neq(&'a str, PrimitiveValue),
+    Lt(&'a str, PrimitiveValue),
+    Lte(&'a str, PrimitiveValue),
+    Gt(&'a str, PrimitiveValue),
+    Gte(&'a str, PrimitiveValue),
     All(&'a [Predicate<'a>]),
     Any(&'a [Predicate<'a>]),
 }
@@ -53,12 +60,30 @@ pub enum Predicate<'a> {
 impl PartialEq<PrimitiveValue> for Value {
     fn eq(&self, other: &PrimitiveValue) -> bool {
         match self {
-            &Value::String(ref string) => match other {
-                &PrimitiveValue::String(ref other) => string == other,
+            &Value::I64(ref value) => match other {
+                &PrimitiveValue::I64(ref other) => value == other,
+                &PrimitiveValue::U64(ref other) => *value == *other as i64,
+                &PrimitiveValue::F64(ref other) => *value == *other as i64,
                 _ => false,
             },
-            &Value::Link(ref id) => match other {
-                &PrimitiveValue::Link(ref other) => id == other,
+            &Value::U64(ref value) => match other {
+                &PrimitiveValue::I64(ref other) => *value == *other as u64,
+                &PrimitiveValue::U64(ref other) => value == other,
+                &PrimitiveValue::F64(ref other) => *value == *other as u64,
+                _ => false,
+            },
+            &Value::F64(ref value) => match other {
+                &PrimitiveValue::I64(ref other) => *value == *other as f64,
+                &PrimitiveValue::U64(ref other) => *value == *other as f64,
+                &PrimitiveValue::F64(ref other) => value == other,
+                _ => false,
+            },
+            &Value::Boolean(ref value) => match other {
+                &PrimitiveValue::Boolean(ref other) => value == other,
+                _ => false,
+            },
+            &Value::String(ref value) => match other {
+                &PrimitiveValue::String(ref other) => value == other,
                 _ => false,
             },
             &Value::Null => match other {
@@ -66,6 +91,32 @@ impl PartialEq<PrimitiveValue> for Value {
                 _ => false,
             },
             _ => false,
+        }
+    }
+}
+
+impl PartialOrd<PrimitiveValue> for Value {
+    fn partial_cmp(&self, other: &PrimitiveValue) -> Option<Ordering> {
+        match self {
+            &Value::I64(ref num) => match other {
+                &PrimitiveValue::I64(ref other) => num.partial_cmp(other),
+                &PrimitiveValue::U64(ref other) => num.partial_cmp(&(*other as i64)),
+                &PrimitiveValue::F64(ref other) => num.partial_cmp(&(*other as i64)),
+                _ => None,
+            },
+            &Value::U64(ref num) => match other {
+                &PrimitiveValue::I64(ref other) => num.partial_cmp(&(*other as u64)),
+                &PrimitiveValue::U64(ref other) => num.partial_cmp(other),
+                &PrimitiveValue::F64(ref other) => num.partial_cmp(&(*other as u64)),
+                _ => None,
+            },
+            &Value::F64(ref num) => match other {
+                &PrimitiveValue::I64(ref other) => num.partial_cmp(&(*other as f64)),
+                &PrimitiveValue::U64(ref other) => num.partial_cmp(&(*other as f64)),
+                &PrimitiveValue::F64(ref other) => num.partial_cmp(other),
+                _ => None,
+            },
+            _ => None,
         }
     }
 }

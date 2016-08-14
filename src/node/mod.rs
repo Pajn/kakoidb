@@ -2,7 +2,7 @@ pub mod hashnode;
 
 use std::collections::HashMap;
 use entities::KakoiResult;
-use value::{Value, decode_optional_value};
+use value::Value;
 
 #[derive(Clone, Debug)]
 pub struct Node {
@@ -11,12 +11,14 @@ pub struct Node {
 }
 
 impl Node {
-    pub fn new(id: String, properties: HashMap<String, Option<String>>) -> KakoiResult<Node> {
+    pub fn new<T>(id: String, properties: HashMap<String, T>) -> KakoiResult<Node> where
+        T: Into<KakoiResult<Value>> {
+
         let decoded_properties = try!(properties
             .into_iter()
             .map(|(key, value)| {
-                let decoded_value = try!(decode_optional_value(&value));
-                Ok((key, decoded_value))
+                let value = try!(value.into());
+                Ok((key, value))
             })
             .collect()
         );
@@ -24,3 +26,4 @@ impl Node {
         Ok(Node {id: id, properties: decoded_properties})
     }
 }
+//where entities::Error: std::convert::From<<T as std::convert::TryInto<value::Value>>::Err>

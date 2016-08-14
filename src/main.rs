@@ -1,6 +1,9 @@
+//#![feature(try_from)]
+
 #[macro_use]
 extern crate log;
 extern crate env_logger;
+extern crate num;
 extern crate uuid;
 
 mod datastore;
@@ -18,9 +21,10 @@ use node::Node;
 use value::Value;
 
 
-fn serie(name: &str, episodes: Vec<Node>) -> Node {
+fn serie(name: &str, year: i64, episodes: Vec<Node>) -> Node {
     let mut node = Node {id: name.to_string(), properties: HashMap::new()};
     node.properties.insert("name".to_string(), Value::String(name.to_string()));
+    node.properties.insert("year".to_string(), Value::I64(year));
     node.properties.insert("episodes".to_string(), Value::List(episodes));
     node
 }
@@ -39,6 +43,7 @@ fn main() {
 
     let elementary = serie(
         "Elementary",
+        2012,
         vec![
             episode("Pilot"),
             episode("While You Were Sleeping"),
@@ -47,6 +52,7 @@ fn main() {
 
     let sherlock = serie(
         "Sherlock",
+        2010,
         vec![
             episode("A Study in Pink"),
             episode("The Blind Banker"),
@@ -97,7 +103,10 @@ fn main() {
                     "episodes",
                     &FilteredSelector {selector: Selector::Field("name"), filter: None},
                 ),
-            ]), filter: Some(Predicate::Eq("name", PrimitiveValue::String("Sherlock".to_string())))},
+            ]), filter: Some(Predicate::All(&[
+                Predicate::Gte("year", PrimitiveValue::I64(2012)),
+                Predicate::Lt("year", PrimitiveValue::I64(2013)),
+            ]))},
         )
     ).unwrap();
 

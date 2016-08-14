@@ -3,8 +3,8 @@ use datastore::DataStore;
 use entities::*;
 use keys::*;
 use node::Node;
-use node::hashnode::{HashNode, io_err};
-use value::{Value, ValueResolver, decode_value, encode_properties, encode_value};
+use node::hashnode::{HashNode};
+use value::{Value, ValueResolver, encode_properties};
 
 pub struct Database<'a> {
     store: &'a mut DataStore,
@@ -21,16 +21,15 @@ impl<'a> Database<'a> {
 
     pub fn set(&mut self, mut path: Path, value: Value) -> KakoiResult {
         let mut resolver = ValueResolver::new();
-        let value = resolver.resolve(value, &path);
-        let value = encode_value(&value);
+        let value = resolver.resolve(value, &path).into();
 
         for list in resolver.lists {
-            let values = list.values.iter().map(encode_value).collect();
-            try!(self.store.lpush(&list_key(&list.id), values).map_err(io_err));
+            let values = list.values.into_iter().map(|v| v.into()).collect();
+            try!(self.store.lpush(&list_key(&list.id), values).map_err(Error::Io));
         }
 
         for node in resolver.nodes {
-            try!(self.store.hset_all(&node_key(&node.id), encode_properties(node)).map_err(io_err));
+            try!(self.store.hset_all(&node_key(&node.id), encode_properties(node)).map_err(Error::Io));
         }
 
         if path.len() > 1 {
@@ -135,6 +134,10 @@ impl<'a> Database<'a> {
                                     &Predicate::Any(predicates) => predicates.iter().any(|p| match_predicate(p, node)),
                                     &Predicate::Eq(field, ref value) => &node.properties[field] == value,
                                     &Predicate::Neq(field, ref value) => &node.properties[field] != value,
+                                    &Predicate::Lt(field, ref value) => &node.properties[field] < value,
+                                    &Predicate::Lte(field, ref value) => &node.properties[field] <= value,
+                                    &Predicate::Gt(field, ref value) => &node.properties[field] > value,
+                                    &Predicate::Gte(field, ref value) => &node.properties[field] >= value,
                                 }
                             };
 
@@ -154,8 +157,13 @@ impl<'a> Database<'a> {
         let list = self.store.lget(&list_key(id));
 
         list
-            .map_err(io_err)
-            .and_then(|list| list.unwrap_or_else(Vec::new).iter().map(decode_value).collect())
+            .map_err(Error::Io)
+            .and_then(|list| list
+                .unwrap_or_else(Vec::new)
+                .into_iter()
+                .map(|v| From::from(v))
+//                .map(|v| TryFrom::try_from(v))
+                .collect())
 
     }
 
@@ -165,7 +173,9 @@ impl<'a> Database<'a> {
             None => root_key()
         };
 
-        self.store.hget(&key, fields).into_node(id)
+        self.store.hget(&key, fields)
+            .map_err(Error::Io)
+            .into_node(id)
     }
 
     fn get_full_node(&self, id: Option<&str>) -> KakoiResult<Option<Node>> {
@@ -174,12 +184,14 @@ impl<'a> Database<'a> {
             None => root_key()
         };
 
-        self.store.hget_all(&key).into_node(id)
+        self.store.hget_all(&key)
+            .map_err(Error::Io)
+            .into_node(id)
     }
 
-    fn set_value(&mut self, key: &str, path: PathPart, value: String) -> KakoiResult {
+    fn set_value(&mut self, key: &str, path: PathPart, value: PrimitiveValue) -> KakoiResult {
         match path {
-            PathPart::Field(ref field) => self.store.hset(key, field, value).map_err(io_err),
+            PathPart::Field(ref field) => self.store.hset(key, field, value).map_err(Error::Io),
         }
     }
 }

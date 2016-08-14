@@ -1,51 +1,55 @@
 use std::collections::HashMap;
 use std::io::Result;
 use datastore::DataStore;
+use entities::PrimitiveValue;
 
-fn new_hash() -> HashMap<String, String> {
+fn new_hash() -> HashMap<String, PrimitiveValue> {
     HashMap::new()
 }
 
-fn new_list() -> Vec<String> {
+fn new_list() -> Vec<PrimitiveValue> {
     Vec::new()
 }
 
 pub struct MemoryDataStore {
-    strings: HashMap<String, String>,
-    hashes: HashMap<String, HashMap<String, String>>,
-    lists: HashMap<String, Vec<String>>,
+    values: HashMap<String, PrimitiveValue>,
+    hashes: HashMap<String, HashMap<String, PrimitiveValue>>,
+    lists: HashMap<String, Vec<PrimitiveValue>>,
+    null: PrimitiveValue,
 }
 
 impl MemoryDataStore {
     pub fn new() -> MemoryDataStore {
-        MemoryDataStore {strings: HashMap::new(), hashes: HashMap::new(), lists: HashMap::new()}
+        MemoryDataStore {
+            values: HashMap::new(),
+            hashes: HashMap::new(),
+            lists: HashMap::new(),
+            null: PrimitiveValue::Null,
+        }
     }
 }
 
 impl DataStore for MemoryDataStore {
-    fn get(&self, key: &str) -> Result<Option<&String>> {
-        Ok(self.strings.get(key))
+    fn get(&self, key: &str) -> Result<&PrimitiveValue> {
+        Ok(self.values.get(key).unwrap_or(&self.null))
     }
 
-    fn set(&mut self, key: &str, value: String) -> Result<()> {
-        self.strings.insert(key.to_string(), value);
+    fn set(&mut self, key: &str, value: PrimitiveValue) -> Result<()> {
+        self.values.insert(key.to_string(), value);
         Ok(())
     }
-    fn hget(&self, key: &str, properties: Vec<&str>) -> Result<Option<HashMap<String, Option<String>>>> {
+    fn hget(&self, key: &str, properties: Vec<&str>) -> Result<Option<HashMap<String, PrimitiveValue>>> {
         debug!("hget {}, {:?}", key, properties);
 
-        Ok(match self.hashes.get(key) {
-            Some(h) => Some(
-                properties
-                    .into_iter()
-                    .map(|property| (property.to_owned(), h.get(property).map(|s| s.clone())))
-                    .collect()
-            ),
-            None => None
-        })
+        Ok(self.hashes.get(key).map(|h| {
+            properties
+                .into_iter()
+                .map(|property| (property.to_owned(), h.get(property).map_or(PrimitiveValue::Null, |s| s.clone())))
+                .collect()
+        }))
     }
 
-    fn hget_all(&self, key: &str) -> Result<Option<HashMap<String, String>>> {
+    fn hget_all(&self, key: &str) -> Result<Option<HashMap<String, PrimitiveValue>>> {
         debug!("hget_all {}", key);
 
         Ok(match self.hashes.get(key) {
@@ -60,15 +64,15 @@ impl DataStore for MemoryDataStore {
         })
     }
 
-    fn hset(&mut self, key: &str, property: &str, value: String) -> Result<()> {
-        debug!("hset {}, {}, {}", key, property, value);
+    fn hset(&mut self, key: &str, property: &str, value: PrimitiveValue) -> Result<()> {
+        debug!("hset {}, {}, {:?}", key, property, value);
 
         let hash = self.hashes.entry(key.to_string()).or_insert_with(new_hash);
         hash.insert(property.to_string(), value);
         Ok(())
     }
 
-    fn hset_all(&mut self, key: &str, values: HashMap<String, String>) -> Result<()> {
+    fn hset_all(&mut self, key: &str, values: HashMap<String, PrimitiveValue>) -> Result<()> {
         debug!("hset_all {}, {:?}", key, values);
 
         let hash = self.hashes.entry(key.to_string()).or_insert_with(new_hash);
@@ -76,13 +80,13 @@ impl DataStore for MemoryDataStore {
         Ok(())
     }
 
-    fn lget(&self, key: &str) -> Result<Option<Vec<String>>> {
+    fn lget(&self, key: &str) -> Result<Option<Vec<PrimitiveValue>>> {
         debug!("lget {}", key);
 
         Ok(self.lists.get(key).map(Clone::clone))
     }
 
-    fn lpush(&mut self, key: &str, values: Vec<String>) -> Result<()> {
+    fn lpush(&mut self, key: &str, values: Vec<PrimitiveValue>) -> Result<()> {
         debug!("lpush {}", key);
 
         let list = self.lists.entry(key.to_string()).or_insert_with(new_list);
