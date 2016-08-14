@@ -1,7 +1,7 @@
 pub mod hashnode;
 
 use std::collections::HashMap;
-use entities::KakoiResult;
+use entities::{KakoiResult, PrimitiveValue};
 use value::Value;
 
 #[derive(Clone, Debug)]
@@ -26,4 +26,14 @@ impl Node {
         Ok(Node {id: id, properties: decoded_properties})
     }
 }
-//where entities::Error: std::convert::From<<T as std::convert::TryInto<value::Value>>::Err>
+
+
+
+impl From<Node> for HashMap<String, PrimitiveValue> {
+    fn from(node: Node) -> Self {
+        node.properties
+            .into_iter()
+            .map(|(field, value)| (field, value.into()))
+            .collect()
+    }
+}

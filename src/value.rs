@@ -74,13 +74,6 @@ impl ValueResolver {
     }
 }
 
-pub fn encode_properties(node: Node) -> HashMap<String, PrimitiveValue> {
-    node.properties
-        .into_iter()
-        .map(|(field, value)| (field, value.into()))
-        .collect()
-}
-
 impl From<PrimitiveValue> for KakoiResult<Value> {
     fn from(value: PrimitiveValue) -> Self {
         match value {
@@ -93,31 +86,6 @@ impl From<PrimitiveValue> for KakoiResult<Value> {
         }
     }
 }
-
-//impl TryFrom<StorageValue> for Value {
-//    type Err = Error;
-//
-//    fn try_from(value: StorageValue) -> KakoiResult<Self> {
-//        match value {
-//            StorageValue::I64(num) => Ok(Value::I64(num)),
-//            StorageValue::U64(num) => Ok(Value::U64(num)),
-//            StorageValue::F64(num) => Ok(Value::F64(num)),
-//            StorageValue::Boolean(boolean) => Ok(Value::Boolean(boolean)),
-//            StorageValue::String(string) => decode_value(&string),
-//        }
-//    }
-//}
-//
-//impl TryFrom<Option<StorageValue>> for Value {
-//    type Err = Error;
-//
-//    fn try_from(value: Option<StorageValue>) -> KakoiResult<Self> {
-//        match value {
-//            Some(value) => TryFrom::try_from(value),
-//            None => Ok(Value::Null),
-//        }
-//    }
-//}
 
 impl From<Value> for PrimitiveValue {
     fn from(value: Value) -> Self {

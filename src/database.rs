@@ -4,7 +4,7 @@ use entities::*;
 use keys::*;
 use node::Node;
 use node::hashnode::{HashNode};
-use value::{Value, ValueResolver, encode_properties};
+use value::{Value, ValueResolver};
 
 pub struct Database<'a> {
     store: &'a mut DataStore,
@@ -29,7 +29,7 @@ impl<'a> Database<'a> {
         }
 
         for node in resolver.nodes {
-            try!(self.store.hset_all(&node_key(&node.id), encode_properties(node)).map_err(Error::Io));
+            try!(self.store.hset_all(&node_key(&node.id), node.into()).map_err(Error::Io));
         }
 
         if path.len() > 1 {
