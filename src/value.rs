@@ -17,6 +17,7 @@ pub enum Value {
     Link(String),
     List(Vec<Node>),
     ListLink(String),
+    Error(String),
     Null,
 }
 
@@ -74,15 +75,45 @@ impl ValueResolver {
     }
 }
 
-impl From<PrimitiveValue> for KakoiResult<Value> {
+impl From<PrimitiveValue> for Value {
     fn from(value: PrimitiveValue) -> Self {
         match value {
-            PrimitiveValue::I64(num) => Ok(Value::I64(num)),
-            PrimitiveValue::U64(num) => Ok(Value::U64(num)),
-            PrimitiveValue::F64(num) => Ok(Value::F64(num)),
-            PrimitiveValue::Boolean(boolean) => Ok(Value::Boolean(boolean)),
-            PrimitiveValue::String(string) => decode_value(&string),
-            PrimitiveValue::Null => Ok(Value::Null),
+            PrimitiveValue::I64(num) => Value::I64(num),
+            PrimitiveValue::U64(num) => Value::U64(num),
+            PrimitiveValue::F64(num) => Value::F64(num),
+            PrimitiveValue::Boolean(boolean) => Value::Boolean(boolean),
+            PrimitiveValue::String(string) => string.into(),
+            PrimitiveValue::Null => Value::Null,
+        }
+    }
+}
+
+impl<'a> From<&'a str> for Value {
+    fn from(string: &str) -> Self {
+        match string.chars().next() {
+            Some(prefixes::LINK) => Value::Link(string[1..].to_string()),
+            Some(prefixes::LIST) => Value::ListLink(string[1..].to_string()),
+            Some(prefixes::STRING) => Value::String(string[1..].to_string()),
+            Some(c) => Value::Error(format!("Invalid initial character {}", c)),
+            None => Value::Null,
+        }
+    }
+}
+
+impl From<String> for Value {
+    fn from(string: String) -> Self {
+        let s: &str = string.as_ref();
+        s.into()
+    }
+}
+
+impl From<Value> for String {
+    fn from(value: Value) -> Self {
+        match value {
+            Value::Link(ref node_id) => format!("{}{}", prefixes::LINK, node_id),
+            Value::ListLink(ref id) => format!("{}{}", prefixes::LIST, id),
+            Value::String(ref string) => format!("{}{}", prefixes::STRING, string),
+            _ => panic!("Can't encode value {:?} as a string", value)
         }
     }
 }
@@ -96,8 +127,8 @@ impl From<Value> for PrimitiveValue {
             Value::Boolean(boolean) => PrimitiveValue::Boolean(boolean),
             Value::Null => PrimitiveValue::Null,
             Value::Link(_) | Value::ListLink(_) | Value::String(_) =>
-                PrimitiveValue::String(encode_value(&value)),
-            _ => panic!("Value {:?} can't be transformed to a storage value", value),
+                PrimitiveValue::String(value.into()),
+            _ => panic!("Value {:?} can't be transformed to a primitive value", value),
         }
     }
 }
@@ -106,23 +137,4 @@ mod prefixes {
     pub const LINK: char = 'L';
     pub const STRING: char = 'S';
     pub const LIST: char = 'l';
-}
-
-fn encode_value(value: &Value) -> String {
-    match value {
-        &Value::Link(ref node_id) => format!("{}{}", prefixes::LINK, node_id),
-        &Value::ListLink(ref id) => format!("{}{}", prefixes::LIST, id),
-        &Value::String(ref string) => format!("{}{}", prefixes::STRING, string),
-        _ => panic!("Got value: {:?}", value)
-    }
-}
-
-fn decode_value(string: &String) -> KakoiResult<Value> {
-    match string.chars().next() {
-        Some(prefixes::LINK) => Ok(Value::Link(string[1..].to_string())),
-        Some(prefixes::LIST) => Ok(Value::ListLink(string[1..].to_string())),
-        Some(prefixes::STRING) => Ok(Value::String(string[1..].to_string())),
-        Some(_) => Err(Error::InvalidValue),
-        None => Ok(Value::Null),
-    }
 }

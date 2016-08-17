@@ -1,7 +1,7 @@
 pub mod hashnode;
 
 use std::collections::HashMap;
-use entities::{KakoiResult, PrimitiveValue};
+use entities::KakoiResult;
 use value::Value;
 
 #[derive(Clone, Debug)]
@@ -12,26 +12,20 @@ pub struct Node {
 
 impl Node {
     pub fn new<T>(id: String, properties: HashMap<String, T>) -> KakoiResult<Node> where
-        T: Into<KakoiResult<Value>> {
+        T: Into<Value> {
 
-        let decoded_properties = try!(properties
+        let properties = properties
             .into_iter()
-            .map(|(key, value)| {
-                let value = try!(value.into());
-                Ok((key, value))
-            })
-            .collect()
-        );
+            .map(|(key, value)| (key, value.into()))
+            .collect();
 
-        Ok(Node {id: id, properties: decoded_properties})
+        Ok(Node {id: id, properties: properties})
     }
 }
 
-
-
-impl From<Node> for HashMap<String, PrimitiveValue> {
-    fn from(node: Node) -> Self {
-        node.properties
+impl<T> Into<HashMap<String, T>> for Node where T: From<Value> {
+    fn into(self) -> HashMap<String, T> {
+        self.properties
             .into_iter()
             .map(|(field, value)| (field, value.into()))
             .collect()

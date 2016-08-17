@@ -11,7 +11,7 @@ pub trait HashNode {
     fn into_node(self, id: Option<&str>) -> KakoiResult<Option<Node>>;
 }
 
-impl<T> HashNode for KakoiResult<Option<HashMap<String, T>>> where T: Into<KakoiResult<Value>> {
+impl<T> HashNode for KakoiResult<Option<HashMap<String, T>>> where T: Into<Value> {
     fn into_node(self, id: Option<&str>) -> KakoiResult<Option<Node>> {
         self
             .and_then(|hash| {
