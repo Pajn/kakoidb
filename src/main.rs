@@ -10,13 +10,15 @@ mod database;
 mod entities;
 mod keys;
 mod node;
+mod predicate;
 mod value;
 
 use std::collections::HashMap;
 use datastore::memory::MemoryDataStore;
 use database::Database;
-use entities::{FilteredSelector, PathPart, Predicate, Selector, PrimitiveValue};
+use entities::{FilteredSelector, PathPart, Selector, PrimitiveValue};
 use node::Node;
+use predicate::Predicate;
 use value::Value;
 
 

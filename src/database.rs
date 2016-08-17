@@ -4,20 +4,8 @@ use entities::*;
 use keys::*;
 use node::Node;
 use node::hashnode::{HashNode};
+use predicate::MatchesPredicate;
 use value::{Value, ValueResolver};
-
-fn match_predicate(predicate: &Predicate, node: &Node) -> bool {
-    match predicate {
-        &Predicate::All(predicates) => predicates.iter().all(|p| match_predicate(p, node)),
-        &Predicate::Any(predicates) => predicates.iter().any(|p| match_predicate(p, node)),
-        &Predicate::Eq(field, ref value) => &node.properties[field] == value,
-        &Predicate::Neq(field, ref value) => &node.properties[field] != value,
-        &Predicate::Lt(field, ref value) => &node.properties[field] < value,
-        &Predicate::Lte(field, ref value) => &node.properties[field] <= value,
-        &Predicate::Gt(field, ref value) => &node.properties[field] > value,
-        &Predicate::Gte(field, ref value) => &node.properties[field] >= value,
-    }
-}
 
 fn node_value(result: KakoiResult<Option<Node>>) -> KakoiResult<Value> {
     result.map(|n| n.map_or(Value::Null, Value::Node))
@@ -142,7 +130,7 @@ impl<'a> Database<'a> {
                             };
 
                             let filter = &selector.filter.to_owned();
-                            filter.as_ref().map_or(true, |p| match_predicate(p, node))
+                            filter.as_ref().map_or(true, |p| node.matches(p))
                         })
                         .collect()
                 );

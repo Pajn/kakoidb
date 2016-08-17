@@ -1,5 +1,6 @@
 use std::cmp::{Ordering, PartialEq, PartialOrd};
 use std::io;
+use predicate::Predicate;
 use value::Value;
 
 #[derive(Clone)]
@@ -43,18 +44,6 @@ pub enum PrimitiveValue {
     Boolean(bool),
     String(String),
     Null,
-}
-
-#[derive(Clone, Debug)]
-pub enum Predicate<'a> {
-    Eq(&'a str, PrimitiveValue),
-    Neq(&'a str, PrimitiveValue),
-    Lt(&'a str, PrimitiveValue),
-    Lte(&'a str, PrimitiveValue),
-    Gt(&'a str, PrimitiveValue),
-    Gte(&'a str, PrimitiveValue),
-    All(&'a [Predicate<'a>]),
-    Any(&'a [Predicate<'a>]),
 }
 
 impl PartialEq<PrimitiveValue> for Value {
