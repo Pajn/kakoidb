@@ -1,3 +1,4 @@
+use std::cmp::{Ordering, PartialEq, PartialOrd};
 use std::collections::HashMap;
 use std::convert::From;
 use uuid::Uuid;
@@ -129,6 +130,70 @@ impl From<Value> for PrimitiveValue {
             Value::Link(_) | Value::ListLink(_) | Value::String(_) =>
                 PrimitiveValue::String(value.into()),
             _ => panic!("Value {:?} can't be transformed to a primitive value", value),
+        }
+    }
+}
+
+impl PartialEq<PrimitiveValue> for Value {
+    fn eq(&self, other: &PrimitiveValue) -> bool {
+        match self {
+            &Value::I64(ref value) => match other {
+                &PrimitiveValue::I64(ref other) => value == other,
+                &PrimitiveValue::U64(ref other) => *value == *other as i64,
+                &PrimitiveValue::F64(ref other) => *value == *other as i64,
+                _ => false,
+            },
+            &Value::U64(ref value) => match other {
+                &PrimitiveValue::I64(ref other) => *value == *other as u64,
+                &PrimitiveValue::U64(ref other) => value == other,
+                &PrimitiveValue::F64(ref other) => *value == *other as u64,
+                _ => false,
+            },
+            &Value::F64(ref value) => match other {
+                &PrimitiveValue::I64(ref other) => *value == *other as f64,
+                &PrimitiveValue::U64(ref other) => *value == *other as f64,
+                &PrimitiveValue::F64(ref other) => value == other,
+                _ => false,
+            },
+            &Value::Boolean(ref value) => match other {
+                &PrimitiveValue::Boolean(ref other) => value == other,
+                _ => false,
+            },
+            &Value::String(ref value) => match other {
+                &PrimitiveValue::String(ref other) => value == other,
+                _ => false,
+            },
+            &Value::Null => match other {
+                &PrimitiveValue::Null => true,
+                _ => false,
+            },
+            _ => false,
+        }
+    }
+}
+
+impl PartialOrd<PrimitiveValue> for Value {
+    fn partial_cmp(&self, other: &PrimitiveValue) -> Option<Ordering> {
+        match self {
+            &Value::I64(ref num) => match other {
+                &PrimitiveValue::I64(ref other) => num.partial_cmp(other),
+                &PrimitiveValue::U64(ref other) => num.partial_cmp(&(*other as i64)),
+                &PrimitiveValue::F64(ref other) => num.partial_cmp(&(*other as i64)),
+                _ => None,
+            },
+            &Value::U64(ref num) => match other {
+                &PrimitiveValue::I64(ref other) => num.partial_cmp(&(*other as u64)),
+                &PrimitiveValue::U64(ref other) => num.partial_cmp(other),
+                &PrimitiveValue::F64(ref other) => num.partial_cmp(&(*other as u64)),
+                _ => None,
+            },
+            &Value::F64(ref num) => match other {
+                &PrimitiveValue::I64(ref other) => num.partial_cmp(&(*other as f64)),
+                &PrimitiveValue::U64(ref other) => num.partial_cmp(&(*other as f64)),
+                &PrimitiveValue::F64(ref other) => num.partial_cmp(other),
+                _ => None,
+            },
+            _ => None,
         }
     }
 }
