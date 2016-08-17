@@ -109,3 +109,15 @@ impl PartialOrd<PrimitiveValue> for Value {
         }
     }
 }
+
+impl<'a> From<&'a str> for PrimitiveValue {
+    fn from(value: &str) -> Self {
+        PrimitiveValue::String(value.to_string())
+    }
+}
+
+impl<'a> From<i64> for PrimitiveValue {
+    fn from(value: i64) -> Self {
+        PrimitiveValue::I64(value)
+    }
+}
