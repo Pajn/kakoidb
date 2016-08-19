@@ -7,7 +7,7 @@ use node::Node;
 
 pub type KakoiResult<T = ()> = Result<T, Error>;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Value {
     I64(i64),
     U64(u64),
@@ -37,7 +37,7 @@ impl ValueResolver {
         ValueResolver {lists: Vec::new(), nodes: Vec::new()}
     }
 
-    fn resolve_node(&mut self, node: &mut Node, path: &Path) -> Value {
+    fn resolve_node(&mut self, node: &mut Node, path: Path) -> Value {
         let mut properties = HashMap::new();
 
         for (property, value) in node.properties.drain() {
@@ -56,7 +56,7 @@ impl ValueResolver {
         Value::Link(node.id.clone())
     }
 
-    pub fn resolve(&mut self, value: Value, path: &Path) -> Value {
+    pub fn resolve(&mut self, value: Value, path: Path) -> Value {
         match value {
             Value::Node(mut node) => self.resolve_node(&mut node, path),
             Value::List(mut nodes) => {

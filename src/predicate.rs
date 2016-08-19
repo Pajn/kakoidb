@@ -1,7 +1,8 @@
 use entities::PrimitiveValue;
 use node::Node;
+use self::Predicate::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Predicate<'a> {
     Eq(&'a str, PrimitiveValue),
     Neq(&'a str, PrimitiveValue),
@@ -13,6 +14,19 @@ pub enum Predicate<'a> {
     Any(&'a [Predicate<'a>]),
 }
 
+impl<'a> Predicate<'a> {
+    pub fn get_fields(&self) -> Vec<&str> {
+        match self {
+            &Eq(field, _) | &Neq(field, _) |
+            &Lt(field, _) | &Lte(field, _) |
+            &Gt(field, _) | &Gte(field, _) =>
+                vec![field],
+            &All(predicates) | &Any(predicates) =>
+                predicates.iter().flat_map(Predicate::get_fields).collect(),
+        }
+    }
+}
+
 pub trait MatchesPredicate {
     fn matches(&self, predicate: &Predicate) -> bool;
 }
@@ -20,17 +34,14 @@ pub trait MatchesPredicate {
 impl MatchesPredicate for Node {
     fn matches(&self, predicate: &Predicate) -> bool {
         match predicate {
-            &Predicate::All(predicates) => predicates.iter().all(|p| self.matches(p)),
-            &Predicate::Any(predicates) => predicates.iter().any(|p| self.matches(p)),
-            &Predicate::Eq(field, ref value) => {
-                println!("field: {}, value: {:?}, props: {:?}", field, value, self.properties);
-                &self.properties[field] == value
-            },
-            &Predicate::Neq(field, ref value) => &self.properties[field] != value,
-            &Predicate::Lt(field, ref value) => &self.properties[field] < value,
-            &Predicate::Lte(field, ref value) => &self.properties[field] <= value,
-            &Predicate::Gt(field, ref value) => &self.properties[field] > value,
-            &Predicate::Gte(field, ref value) => &self.properties[field] >= value,
+            &All(predicates) => predicates.iter().all(|p| self.matches(p)),
+            &Any(predicates) => predicates.iter().any(|p| self.matches(p)),
+            &Eq(field, ref value) => &self.properties[field] == value,
+            &Neq(field, ref value) => &self.properties[field] != value,
+            &Lt(field, ref value) => &self.properties[field] < value,
+            &Lte(field, ref value) => &self.properties[field] <= value,
+            &Gt(field, ref value) => &self.properties[field] > value,
+            &Gte(field, ref value) => &self.properties[field] >= value,
         }
     }
 }
@@ -38,6 +49,7 @@ impl MatchesPredicate for Node {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::Predicate::*;
     use std::collections::HashMap;
     use node::Node;
     use value::Value;
@@ -57,65 +69,65 @@ mod tests {
     fn eq() {
         let node = create_node();
 
-        assert!(node.matches(&Predicate::Eq("string", "string".into())), "string == string");
-        assert!(!node.matches(&Predicate::Eq("number", "number".into())), "!(number == number)");
+        assert!(node.matches(&Eq("string", "string".into())), "string == string");
+        assert!(!node.matches(&Eq("number", "number".into())), "!(number == number)");
     }
 
     #[test]
     fn neq() {
         let node = create_node();
 
-        assert!(node.matches(&Predicate::Neq("string", "number".into())), "string != number");
-        assert!(!node.matches(&Predicate::Neq("number", 42.into())), "!(number != 42)");
+        assert!(node.matches(&Neq("string", "number".into())), "string != number");
+        assert!(!node.matches(&Neq("number", 42.into())), "!(number != 42)");
     }
 
     #[test]
     fn lt() {
         let node = create_node();
 
-        assert!(node.matches(&Predicate::Lt("number", 43.into())), "number < 43");
-        assert!(!node.matches(&Predicate::Lt("number", 42.into())), "!(number < 42)");
+        assert!(node.matches(&Lt("number", 43.into())), "number < 43");
+        assert!(!node.matches(&Lt("number", 42.into())), "!(number < 42)");
     }
 
     #[test]
     fn lte() {
         let node = create_node();
 
-        assert!(node.matches(&Predicate::Lte("number", 43.into())), "number <= 43");
-        assert!(node.matches(&Predicate::Lte("number", 42.into())), "number <= 42");
-        assert!(!node.matches(&Predicate::Lte("number", 41.into())), "!(number <= 41)");
+        assert!(node.matches(&Lte("number", 43.into())), "number <= 43");
+        assert!(node.matches(&Lte("number", 42.into())), "number <= 42");
+        assert!(!node.matches(&Lte("number", 41.into())), "!(number <= 41)");
     }
 
     #[test]
     fn gt() {
         let node = create_node();
 
-        assert!(node.matches(&Predicate::Gt("number", 41.into())), "number > 41");
-        assert!(!node.matches(&Predicate::Gt("number", 42.into())), "!(number > 42)");
+        assert!(node.matches(&Gt("number", 41.into())), "number > 41");
+        assert!(!node.matches(&Gt("number", 42.into())), "!(number > 42)");
     }
 
     #[test]
     fn gte() {
         let node = create_node();
 
-        assert!(node.matches(&Predicate::Gte("number", 41.into())), "number >= 41");
-        assert!(node.matches(&Predicate::Gte("number", 42.into())), "number >= 42");
-        assert!(!node.matches(&Predicate::Gte("number", 43.into())), "!(number >= 43)");
+        assert!(node.matches(&Gte("number", 41.into())), "number >= 41");
+        assert!(node.matches(&Gte("number", 42.into())), "number >= 42");
+        assert!(!node.matches(&Gte("number", 43.into())), "!(number >= 43)");
     }
 
     #[test]
     fn all() {
         let node = create_node();
 
-        assert!(node.matches(&Predicate::All(&[
-            Predicate::Gt("number", 41.into()),
-            Predicate::Lt("number", 43.into()),
+        assert!(node.matches(&All(&[
+            Gt("number", 41.into()),
+            Lt("number", 43.into()),
         ])), "number > 41 && number < 43");
 
-        assert!(!node.matches(&Predicate::All(&[
-            Predicate::Gt("number", 41.into()),
-            Predicate::Lt("number", 43.into()),
-            Predicate::Eq("number", "number".into()),
+        assert!(!node.matches(&All(&[
+            Gt("number", 41.into()),
+            Lt("number", 43.into()),
+            Eq("number", "number".into()),
         ])), "!(number > 41 && number < 43 && number == number)");
     }
 
@@ -123,19 +135,19 @@ mod tests {
     fn any() {
         let node = create_node();
 
-        assert!(node.matches(&Predicate::Any(&[
-            Predicate::Gt("number", 41.into()),
-            Predicate::Lt("number", 41.into()),
+        assert!(node.matches(&Any(&[
+            Gt("number", 41.into()),
+            Lt("number", 41.into()),
         ])), "number > 41 || number < 41");
 
-        assert!(node.matches(&Predicate::Any(&[
-            Predicate::Gt("number", 41.into()),
-            Predicate::Lt("number", 43.into()),
+        assert!(node.matches(&Any(&[
+            Gt("number", 41.into()),
+            Lt("number", 43.into()),
         ])), "number > 41 || number < 43");
 
-        assert!(!node.matches(&Predicate::Any(&[
-            Predicate::Gt("number", 43.into()),
-            Predicate::Lt("number", 41.into()),
+        assert!(!node.matches(&Any(&[
+            Gt("number", 43.into()),
+            Lt("number", 41.into()),
         ])), "!(number > 43 || number < 41)");
     }
 }

@@ -4,10 +4,12 @@ use std::collections::HashMap;
 use entities::KakoiResult;
 use value::Value;
 
-#[derive(Clone, Debug)]
+pub type NodeProperties = HashMap<String, Value>;
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct Node {
     pub id: String,
-    pub properties: HashMap<String, Value>,
+    pub properties: NodeProperties,
 }
 
 impl Node {

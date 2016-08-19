@@ -61,7 +61,7 @@ fn main() {
     );
 
     db.set(
-        vec![PathPart::Field(&"series")],
+        &[PathPart::Field(&"series")],
         Value::List(vec![elementary, sherlock]),
     ).unwrap();
 
