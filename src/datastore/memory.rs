@@ -64,19 +64,19 @@ impl DataStore for MemoryDataStore {
         })
     }
 
-    fn hset(&mut self, key: &str, property: &str, value: PrimitiveValue) -> Result<()> {
+    fn hset(&mut self, key: &str, property: &str, value: &PrimitiveValue) -> Result<()> {
         debug!("hset {}, {}, {:?}", key, property, value);
 
         let hash = self.hashes.entry(key.to_string()).or_insert_with(new_hash);
-        hash.insert(property.to_string(), value);
+        hash.insert(property.to_string(), value.to_owned());
         Ok(())
     }
 
-    fn hset_all(&mut self, key: &str, values: HashMap<String, PrimitiveValue>) -> Result<()> {
+    fn hset_all(&mut self, key: &str, values: &HashMap<String, PrimitiveValue>) -> Result<()> {
         debug!("hset_all {}, {:?}", key, values);
 
         let hash = self.hashes.entry(key.to_string()).or_insert_with(new_hash);
-        hash.extend(values);
+        hash.extend(values.to_owned());
         Ok(())
     }
 
@@ -86,11 +86,11 @@ impl DataStore for MemoryDataStore {
         Ok(self.lists.get(key).map(Clone::clone))
     }
 
-    fn lpush(&mut self, key: &str, values: Vec<PrimitiveValue>) -> Result<()> {
+    fn lpush(&mut self, key: &str, values: &Vec<PrimitiveValue>) -> Result<()> {
         debug!("lpush {}", key);
 
         let list = self.lists.entry(key.to_string()).or_insert_with(new_list);
-        list.extend(values);
+        list.extend(values.to_owned());
         Ok(())
     }
 }

@@ -1,6 +1,7 @@
 use std::io;
 use node::NodeProperties;
 use predicate::Predicate;
+use node::Node;
 use value::Value;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -106,7 +107,16 @@ pub struct Mutation<'a> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub enum NodeType {
+    Node(Node),
+    Nodes(Vec<Node>),
+    Link(String),
+    Links(Vec<String>),
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum MutationOperation {
+    Append(NodeType),
     Set(Value),
     Merge(NodeProperties),
 }

@@ -22,16 +22,44 @@ impl<'a> Database<'a> {
 
     pub fn mutate(&mut self, mutation: Mutation) -> KakoiResult {
         match mutation.opertaion {
+            MutationOperation::Append(node) => self.append(mutation.path, node),
             MutationOperation::Merge(properties) => self.merge(mutation.path, properties),
             MutationOperation::Set(value) => self.set(mutation.path, value),
         }
     }
 
-    pub fn merge(&mut self, path: Path, properties: NodeProperties) -> KakoiResult {
-        let keys = try!(self.resolve_path(path));
+    pub fn append(&mut self, path: Path, node: NodeType) -> KakoiResult {
+        let keys = try!(self.resolve_path(path, true));
+        println!("keys {:?}", keys);
+
+        let node_values = match node {
+            NodeType::Node(node) => vec![Value::Node(node)],
+            NodeType::Nodes(nodes) => nodes.into_iter().map(Value::Node).collect(),
+            NodeType::Link(id) => vec![Value::Link(id)],
+            NodeType::Links(ids) => ids.into_iter().map(Value::Link).collect(),
+        };
+        println!("node_values {:?}", node_values);
+
+        let values = try!(node_values
+            .into_iter()
+            .map(|node| self.resolve_value(&path, node))
+            .collect()
+        );
+        println!("values {:?}", values);
 
         for key in keys {
-            try!(self.store.hset_all(&key, properties.clone().into_iter().map(|(k, v)| (k, v.into())).collect())
+            try!(self.store.lpush(&key, &values)
+                .map_err(Error::Io));
+        }
+
+        Ok(())
+    }
+
+    pub fn merge(&mut self, path: Path, properties: NodeProperties) -> KakoiResult {
+        let keys = try!(self.resolve_path(path, false));
+
+        for key in keys {
+            try!(self.store.hset_all(&key, &properties.clone().into_iter().map(|(k, v)| (k, v.into())).collect())
                 .map_err(Error::Io));
         }
 
@@ -39,29 +67,35 @@ impl<'a> Database<'a> {
     }
 
     pub fn set(&mut self, path: Path, value: Value) -> KakoiResult {
-        let mut resolver = ValueResolver::new();
-        let value: PrimitiveValue = resolver.resolve(value, &path).into();
-
-        for list in resolver.lists {
-            let values = list.values.into_iter().map(|v| v.into()).collect();
-            try!(self.store.lpush(&list_key(&list.id), values).map_err(Error::Io));
-        }
-
-        for node in resolver.nodes {
-            try!(self.store.hset_all(&node_key(&node.id), node.into()).map_err(Error::Io));
-        }
+        let value = try!(self.resolve_value(&path, value));
 
         let final_part = path.last();
-        let keys = try!(self.resolve_path(path));
+        let keys = try!(self.resolve_path(path, false));
 
         for key in keys {
-            try!(self.set_value(&key, &final_part.unwrap(), value.clone()));
+            try!(self.set_value(&key, &final_part.unwrap(), &value));
         }
 
         Ok(())
     }
 
-    fn resolve_path(&self, path: Path) -> KakoiResult<Vec<String>> {
+    fn resolve_value(&mut self, path: &Path, value: Value) -> KakoiResult<PrimitiveValue> {
+        let mut resolver = ValueResolver::new();
+        let value: PrimitiveValue = resolver.resolve(value, path).into();
+
+        for list in resolver.lists {
+            let values = list.values.into_iter().map(|v| v.into()).collect();
+            try!(self.store.lpush(&list_key(&list.id), &values).map_err(Error::Io));
+        }
+
+        for node in resolver.nodes {
+            try!(self.store.hset_all(&node_key(&node.id), &node.into()).map_err(Error::Io));
+        }
+
+        Ok(value)
+    }
+
+    fn resolve_path(&self, path: Path, return_list: bool) -> KakoiResult<Vec<String>> {
         if path.is_empty() { return Err(Error::EmptyPath) }
 
         let mut keys = vec![root_key()];
@@ -86,6 +120,10 @@ impl<'a> Database<'a> {
                 match value {
                     Value::Link(id) => next_keys.push(node_key(&id)),
                     Value::ListLink(id) => {
+                        if return_list && index == path.len() - 1 {
+                            next_keys.push(list_key(&id));
+                            continue;
+                        }
                         match filter {
                             Some(filter) => {
                                 let fields = filter.get_fields();
@@ -301,7 +339,7 @@ impl<'a> Database<'a> {
             .map(|props| props.and_then(|mut p| p.remove(field)).unwrap_or(PrimitiveValue::Null))
     }
 
-    fn set_value(&mut self, key: &str, path: &PathPart, value: PrimitiveValue) -> KakoiResult {
+    fn set_value(&mut self, key: &str, path: &PathPart, value: &PrimitiveValue) -> KakoiResult {
         match path {
             &PathPart::Field(ref field) | &PathPart::FieldFilter(ref field, _) =>
                 self.store.hset(key, field, value).map_err(Error::Io),
@@ -314,7 +352,7 @@ mod tests {
     use super::*;
     use std::collections::HashMap;
     use datastore::memory::MemoryDataStore;
-    use entities::{FilteredSelector, KakoiResult, Mutation, MutationOperation, PathPart, Selector};
+    use entities::{FilteredSelector, KakoiResult, Mutation, MutationOperation, NodeType, PathPart, Selector};
     use node::Node;
     use predicate::Predicate;
     use value::Value;
@@ -489,5 +527,26 @@ mod tests {
 
         assert_eq!(series.len(), 2);
         assert_eq!(names(series), ["Elementary", "Holmes"]);
+    }
+
+    #[test]
+    fn append() {
+        let mut store = MemoryDataStore::new();
+        let mut db = create_db(&mut store);
+
+        let sherlock_homes = serie("Sherlock Holmes", 1984, Vec::new());
+
+        db.mutate(Mutation {
+            path: &[PathPart::Field("series")],
+            opertaion: MutationOperation::Append(NodeType::Node(sherlock_homes)),
+        }).unwrap();
+
+        let series = get_series(db.select(&Selector::Traverse("series", &FilteredSelector {
+            selector: Selector::Field("name"),
+            filter: None,
+        })));
+
+        assert_eq!(series.len(), 3);
+        assert_eq!(names(series), ["Elementary", "Sherlock", "Sherlock Holmes"]);
     }
 }

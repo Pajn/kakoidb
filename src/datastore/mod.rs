@@ -10,11 +10,11 @@ pub trait DataStore {
 
     fn hget(&self, key: &str, properties: Vec<&str>) -> Result<Option<HashMap<String, PrimitiveValue>>>;
     fn hget_all(&self, key: &str) -> Result<Option<HashMap<String, PrimitiveValue>>>;
-    fn hset(&mut self, key: &str, property: &str, value: PrimitiveValue) -> Result<()>;
-    fn hset_all(&mut self, key: &str, values: HashMap<String, PrimitiveValue>) -> Result<()>;
+    fn hset(&mut self, key: &str, property: &str, value: &PrimitiveValue) -> Result<()>;
+    fn hset_all(&mut self, key: &str, values: &HashMap<String, PrimitiveValue>) -> Result<()>;
 
     fn lget(&self, key: &str) -> Result<Option<Vec<PrimitiveValue>>>;
-    fn lpush(&mut self, key: &str, values: Vec<PrimitiveValue>) -> Result<()>;
+    fn lpush(&mut self, key: &str, values: &Vec<PrimitiveValue>) -> Result<()>;
 }
 
 //abstract class DataStore {
